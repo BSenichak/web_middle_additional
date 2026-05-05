@@ -1,3 +1,4 @@
+// server.js - Мозок гри
 import { createServer } from "http";
 import { Server } from "socket.io";
 import { join, dirname } from "path";
@@ -5,8 +6,10 @@ import { readFile } from "fs/promises";
 import chalk from "chalk";
 import { fileURLToPath } from "url";
 
+// Крок 1: Налаштування шляху до файлів.
 let __dirname = dirname(fileURLToPath(import.meta.url));
 
+// Крок 2: Створюємо веб-сервер.
 const httpServer = createServer(async (req, res) => {
     try {
         logger(req);
@@ -24,22 +27,25 @@ const httpServer = createServer(async (req, res) => {
     }
 });
 
+// Крок 3: Налаштовуємо зв'язок у реальному часі (Socket.IO).
 const io = new Server(httpServer);
 
+// Крок 4: Змінні для стану гри.
 let players = {};
 let ball = { x: 300, y: 200, vx: 4, vy: 3 };
 const sides = ["left", "right"];
 let score = { left: 0, right: 0 };
 let isPlaying = false;
 
+// Крок 5: Обробка підключення гравців.
 io.on("connection", (socket) => {
     console.log(
-        chalk.yellow("\nSocket:"),
+        chalk.yellow("Socket:"),
         chalk.blue("Player connected id:"),
         chalk.green(socket.id),
     );
 
- if (Object.keys(players).length < 2) {
+    if (Object.keys(players).length < 2) {
         const takenSides = Object.values(players).map(p => p.side);
         const freeSide = sides.find(s => !takenSides.includes(s));
 
@@ -64,7 +70,6 @@ io.on("connection", (socket) => {
     if (Object.keys(players).length === 2) {
         isPlaying = true;
 
-        // ресет м’яча
         ball.x = 300;
         ball.y = 200;
         ball.vx = 4;
@@ -77,6 +82,7 @@ io.on("connection", (socket) => {
     });
 });
 
+// Крок 6: Ігровий цикл - оновлення стану гри.
 setInterval(() => {
     if (!isPlaying) {
         io.emit("state", { players, ball, score, isPlaying });
@@ -86,12 +92,10 @@ setInterval(() => {
     ball.x += ball.vx;
     ball.y += ball.vy;
 
-    // стіни
     if (ball.y < 0 || ball.y > 400) {
         ball.vy *= -1;
     }
 
-    // зіткнення
     for (let id in players) {
         let p = players[id];
 
@@ -108,7 +112,6 @@ setInterval(() => {
         }
     }
 
-    // ГОЛ
     if (ball.x < 0) {
         score.right++;
         resetBall();
@@ -123,6 +126,7 @@ setInterval(() => {
 
 }, 1000 / 60);
 
+// Крок 7: Функція скидання м'яча.
 function resetBall() {
     isPlaying = false;
 
@@ -133,10 +137,12 @@ function resetBall() {
     ball.vy = 3;
 }
 
+// Крок 8: Запуск сервера.
 httpServer.listen(3000, () => {
     console.log("Server running on 3000");
 });
 
+// Крок 9: Допоміжні функції.
 function logger(req) {
     let url = chalk.green(req.url);
     let time = chalk.red(new Date().toLocaleTimeString());
